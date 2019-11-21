@@ -1,0 +1,163 @@
+---
+title: "empirical_analysis_imgesu"
+author: "Imgesu"
+date: "11/19/2019"
+output: html_document
+---
+```{r}
+# Packages needed for this Rmd. Install if needed
+
+# install.packages('wbstats')
+# install.packages('ggplot2')
+# install.packages('doBy')
+# install.packages("dplyr")
+```
+
+```{r}
+# Retrieve libraries needed
+library(ggplot2)
+library(httr)
+library(wbstats)
+library(doBy)
+```
+
+```{r}
+# Retrieve the Life expectancy at birth from 1960 using wbstat
+data <- wb(indicator = "SP.DYN.LE00.IN",startdate = 1960, enddate = 2019)
+```
+
+```{r}
+# Adding the country names
+wb_countries <- wbcountries() 
+```
+
+```{r}
+# Merge the data sets together
+life_exp <- merge(data, y = wb_countries[c("iso2c", "region")], by = "iso2c", all.x = TRUE)
+
+```
+
+```{r}
+# Drop Aggregates column
+life_exp <- subset(life_exp, region != "Aggregates")
+
+# The correct data set which includes country names
+life_exp 
+```
+
+```{r}
+# Check if there are NAs
+a<-is.na.data.frame(life_exp)
+unique(a)
+#no NAs in the data
+```
+
+```{r}
+# Drop irrelevent columns 
+data <-subset(life_exp, select = -c(indicatorID,indicator,iso2c,iso3c) )
+```
+
+```{r}
+# Data clean up
+
+# The date needs to be transformed into a numeric value for plotting
+data$date <-as.numeric(data$date)
+
+
+#rename columns
+colnames(data)[which(names(data) == "date")] <- "year"
+colnames(data)[which(names(data) == "value")] <- "age"
+data
+```
+
+```{r}
+# Check missing data
+# Check the latest year data exists for each country
+country_latest_year <- summaryBy(year ~ country, data=data, FUN=max)
+
+# See if 
+unique(country_latest_year$year.max)
+
+```
+
+```{r}
+# Check missing data
+# Check the oldest year data exists for each country
+country_oldest_year <- summaryBy(year ~ country, data=data, FUN=min)
+unique(country_oldest_year$year.min)
+```
+
+```{r}
+# Data exploration
+
+# Aggregate the data by regions
+
+# Aggregate using mean. Missing values for countries will be handled by the mean functionality
+regionmean <- summaryBy(age ~ region + year, data=data, FUN=mean)
+
+
+#Aggregate using median. Missing values for countries will be handled by the median functionality
+regionmedian <- summaryBy(age ~ region + year, data=data, FUN=median)
+
+```
+
+
+
+```{r}
+#plotting aggregated mean life expectancy data by region and year
+meanlife_region <- ggplot(regionmean, aes(x=year, y=age.mean, group=region)) +
+  geom_line(aes(color=region))+
+  geom_point(aes(color=region))
+
+meanlife_region
+
+```
+
+```{r}
+
+
+#plotting aggregated median life expectancy data by region and years
+medianlife_region <- ggplot(regionmedian, aes(x=year, y=age.median,group=region))+
+  geom_line(aes(color=region))+
+  geom_point(aes(color=region))
+
+medianlife_region
+
+
+```
+
+```{r}
+#look at the standard deviation 
+regionstd <- summaryBy(age ~ region + year, data=data, FUN=sd)
+
+regionstd
+
+sd_region <- ggplot(regionstd, aes(x=year, y=age.sd, group=region)) +
+  geom_line(aes(color=region))+
+  geom_point(aes(color=region))+
+  geom_point(aes(color=region))
+
+sd_region+labs(x = "Year", y = "Age",title = "Standard Deviation of Life Expectancy by Region",caption = "Data source: World Development Indicators, World Bank", color='Region')+scale_x_continuous(breaks = scales::pretty_breaks(n = 7)) +
+scale_y_continuous(breaks = scales::pretty_breaks(n = 10))
+
+
+# The Standard deviation shows the variance among countries in each region, From this graph we can observe a surge in variance in East Asia & Pacific, This can be further investigated by pinpointing the countries causing this surge in variance if time allowed us to. 
+
+#We observe another increase in variance for the Sub-Saharan Africa region, which occurs during early 80s. This can be related to the HIV epidemic and can be interpreted as HIV epidemic impacted different countries in Sub-Saharan Africa region at different levels. 
+```
+
+```{r}
+
+
+#final graph of aggregated life expectancy 
+
+life_region <- ggplot(regionmean, aes(x=year, y=age.mean, group=region))+
+  geom_line(aes(color=region))+
+  geom_point(aes(color=region))+annotate("rect", xmin = 1985, xmax = 2000, ymin =40, ymax = 80,
+        alpha = .2)
+
+life_region+labs(x = "Year", y = "Age",title = "Mean of Life Expectancy by Region",caption = "Data source: World Development Indicators, World Bank", color='Region')+scale_x_continuous(breaks = scales::pretty_breaks(n = 7)) +
+scale_y_continuous(breaks = scales::pretty_breaks(n = 10))
+
+```
+
