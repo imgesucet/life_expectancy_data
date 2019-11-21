@@ -6,11 +6,10 @@ output: html_document
 ---
 ```{r}
 # Packages needed for this Rmd. Install if needed
-
-# install.packages('wbstats')
-# install.packages('ggplot2')
-# install.packages('doBy')
-# install.packages("dplyr")
+install.packages('wbstats')
+install.packages('ggplot2')
+install.packages('doBy')
+install.packages("dplyr")
 ```
 
 ```{r}
